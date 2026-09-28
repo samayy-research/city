@@ -1,0 +1,1 @@
+export function Header() { return <header className="app-header"><div className="eyebrow">CITY OF JACKSONVILLE · PROJECT INTAKE</div><h1>Preliminary Permit Routing</h1><p>COJ-informed screening for project coordination and document planning.</p></header> }
