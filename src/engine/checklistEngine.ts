@@ -6,7 +6,7 @@ export function getApplicableQuestions(answers: AnswerMap): Question[] {
   const path: Question[] = []
   let id: string | undefined = questions[0]?.id
   const seen = new Set<string>()
-  while (id && !seen.has(id)) { const question = getQuestion(id); if (!question) break; path.push(question); seen.add(id); const value = answers[id]; id = value ? question.options.find((option) => option.value === value)?.nextQuestion : undefined }
+  while (id && !seen.has(id)) { const question = getQuestion(id); if (!question) break; path.push(question); seen.add(id); const value: string | undefined = answers[id]; id = value ? question.options.find((option) => option.value === value)?.nextQuestion : undefined }
   return path
 }
 export function sanitizeAnswers(answers: AnswerMap): AnswerMap { const allowed = new Set(getApplicableQuestions(answers).map((q) => q.id)); return Object.fromEntries(Object.entries(answers).filter(([id]) => allowed.has(id))) }
