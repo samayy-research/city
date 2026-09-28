@@ -9,6 +9,9 @@ import type { AnswerMap } from './types/checklist'
 
 export default function App() {
   const [started, setStarted] = useState(false)
+  const [projectDetailsComplete, setProjectDetailsComplete] = useState(false)
+  const [projectName, setProjectName] = useState('')
+  const [projectLocation, setProjectLocation] = useState('')
   const [answers, setAnswers] = useState<AnswerMap>({})
   const [index, setIndex] = useState(0)
   const [showResults, setShowResults] = useState(false)
@@ -28,12 +31,19 @@ export default function App() {
     if (index < applicable.length - 1) setIndex(index + 1)
     else if (complete) setShowResults(true)
   }
-  const restart = () => { setAnswers({}); setIndex(0); setShowResults(false); setStarted(false) }
+  const restart = () => { setAnswers({}); setIndex(0); setShowResults(false); setProjectDetailsComplete(false); setProjectName(''); setProjectLocation(''); setStarted(false) }
 
   if (!started) return <main className="shell landing"><Header /><section className="landing-card"><div className="landing-mark">COJ</div><div className="question-kicker">PROJECT INTAKE</div><h2>Prepare for a more informed City review.</h2><p>Answer focused scope questions to create a preliminary permit matrix, review flags, and document-preparation record.</p><button className="button primary large" onClick={() => setStarted(true)}>Begin intake <span>-&gt;</span></button><small>For preliminary coordination only. Final requirements are determined by the City of Jacksonville.</small></section></main>
 
   return <main className="shell"><Header />
-    {complete && showResults ? <ChecklistResults items={result.items} notes={result.notes} answers={answers} onRestart={restart} onEdit={() => { setShowResults(false); setIndex(0) }} /> : <>
+    {!projectDetailsComplete ? <section className="question-card">
+      <div className="question-kicker">PROJECT DETAILS</div><h2>Start with your project information.</h2><p className="helper">This information is included in your intake record and pre-fills the coordination request form.</p>
+      <form className="project-form" onSubmit={(event) => { event.preventDefault(); setProjectDetailsComplete(true) }}>
+        <label>Your name<input value={projectName} onChange={(event) => setProjectName(event.target.value)} required autoComplete="name" /></label>
+        <label>Project address or location<input value={projectLocation} onChange={(event) => setProjectLocation(event.target.value)} required autoComplete="street-address" /></label>
+        <button className="button primary" type="submit">Continue <span>-&gt;</span></button>
+      </form>
+    </section> : complete && showResults ? <ChecklistResults items={result.items} notes={result.notes} answers={answers} projectName={projectName} projectLocation={projectLocation} onRestart={restart} onEdit={() => { setShowResults(false); setIndex(0) }} /> : <>
       <ProgressBar questionNumber={index + 1} answered={Object.keys(answers).length} possibleTotal={questions.length} />
       <div className="status"><span><strong>{Object.keys(answers).length}</strong> Answers recorded</span><span><strong>{result.items.length}</strong> Preliminary action items</span></div>
       {question && <QuestionCard question={question} value={answers[question.id]} onChange={update} />}

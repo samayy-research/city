@@ -20,7 +20,7 @@ declare global {
   }
 }
 
-export function ChecklistResults({ items, notes, answers, onRestart, onEdit }: { items: ChecklistItem[]; notes: string[]; answers: AnswerMap; onRestart: () => void; onEdit: () => void }) {
+export function ChecklistResults({ items, notes, answers, projectName, projectLocation, onRestart, onEdit }: { items: ChecklistItem[]; notes: string[]; answers: AnswerMap; projectName: string; projectLocation: string; onRestart: () => void; onEdit: () => void }) {
   const [completed, setCompleted] = useState<Set<string>>(new Set())
   const [email, setEmail] = useState('')
   const [emailNotice, setEmailNotice] = useState('')
@@ -43,7 +43,7 @@ export function ChecklistResults({ items, notes, answers, onRestart, onEdit }: {
     return () => script.removeEventListener('load', renderWidget)
   }, [requestOpen, turnstileSiteKey])
   const toggle = (id: string) => setCompleted((previous) => { const next = new Set(previous); next.has(id) ? next.delete(id) : next.add(id); return next })
-  const coordinationText = coordinationRoute ? `CITY COORDINATION\nProject route: ${coordinationRoute.label}\nRecommended group: ${coordinationRoute.team}\nContact for more information: ${coordinationRoute.meetingContact}\nMeeting location: ${coordinationRoute.meetingLocation}\n` : ''
+  const coordinationText = `PROJECT DETAILS\nName: ${projectName}\nProject address or location: ${projectLocation}\n\n${coordinationRoute ? `CITY COORDINATION\nProject route: ${coordinationRoute.label}\nRecommended group: ${coordinationRoute.team}\nContact for more information: ${coordinationRoute.meetingContact}\nMeeting location: ${coordinationRoute.meetingLocation}\n` : ''}`
   const text = `PRELIMINARY COJ-INFORMED PERMIT AND DOCUMENT CHECKLIST\nGenerated ${new Date().toLocaleDateString()}\n\n${coordinationText}${outcomeOrder.filter((outcome) => byOutcome[outcome].length).map((outcome) => `${outcomeCopy[outcome].title.toUpperCase()}\n${byOutcome[outcome].map((entry) => `${completed.has(entry.id) ? '[x]' : '[ ]'} ${entry.label}\n    Why: ${entry.reason}\n    Source: ${entry.source}${entry.sourceLocation ? ` — ${entry.sourceLocation}` : ''}`).join('\n')}`).join('\n\n')}\n\nINTAKE ANSWERS\n${Object.entries(answers).map(([key, value]) => `${labels[key]}: ${pretty(value)}`).join('\n')}`
   const copy = async () => { await navigator.clipboard.writeText(text); window.alert('Checklist copied to clipboard.') }
   const requestEmail = () => {
@@ -85,7 +85,7 @@ export function ChecklistResults({ items, notes, answers, onRestart, onEdit }: {
       <div className="question-kicker">SECURE REQUEST</div><h3 id="request-heading">Request a coordination meeting</h3>
       <p>Verify that you are human, then your email application will open with a pre-filled request to the recommended City group.</p>
       <form onSubmit={submitCoordinationRequest} className="coordination-form">
-        <label>Your name<input name="name" required autoComplete="name" /></label><label>Email address<input name="email" type="email" required autoComplete="email" /></label><label>Project address or parcel<input name="projectAddress" required autoComplete="street-address" /></label><label>What do you need help with?<textarea name="message" required rows={4} /></label>
+        <label>Your name<input name="name" defaultValue={projectName} required autoComplete="name" /></label><label>Email address<input name="email" type="email" required autoComplete="email" /></label><label>Project address or parcel<input name="projectAddress" defaultValue={projectLocation} required autoComplete="street-address" /></label><label>What do you need help with?<textarea name="message" required rows={4} /></label>
         <label className="honeypot" aria-hidden="true">Website<input name="website" tabIndex={-1} autoComplete="off" /></label>
         {turnstileSiteKey ? <div ref={turnstileTarget} aria-label="Human verification" /> : <p className="email-notice">This form is not yet configured for public use.</p>}
         <button className="button primary" disabled={sendingRequest}>{sendingRequest ? 'Verifying…' : 'Verify and prepare request email'}</button>
@@ -95,7 +95,7 @@ export function ChecklistResults({ items, notes, answers, onRestart, onEdit }: {
     {notes.length > 0 && <aside className="notes"><strong>Follow-up notes</strong>{notes.map((note) => <p key={note}>{note}</p>)}</aside>}
     <div className="outcome-summary">{outcomeOrder.map((outcome) => <div key={outcome}><strong>{byOutcome[outcome].length}</strong><span>{outcomeCopy[outcome].title}</span></div>)}</div>
     <div className="checklist">{outcomeOrder.filter((outcome) => byOutcome[outcome].length).map((outcome) => <section className={`outcome-group ${outcome}`} key={outcome}><div className="outcome-heading"><h3>{outcomeCopy[outcome].title}</h3><p>{outcomeCopy[outcome].description}</p></div>{Object.entries(byOutcome[outcome].reduce<Record<string, ChecklistItem[]>>((result, entry) => { (result[entry.category] ??= []).push(entry); return result }, {})).map(([category, entries]) => <ChecklistSection key={category} title={category} items={entries} completed={completed} onToggle={toggle} />)}</section>)}</div>
-    <section className="answer-summary"><h3>Intake record</h3>{Object.entries(answers).map(([key, value]) => <div key={key}><span>{labels[key]}</span><strong>{pretty(value)}</strong></div>)}</section>
+    <section className="answer-summary"><h3>Intake record</h3><div><span>Name</span><strong>{projectName}</strong></div><div><span>Project address or location</span><strong>{projectLocation}</strong></div>{Object.entries(answers).map(([key, value]) => <div key={key}><span>{labels[key]}</span><strong>{pretty(value)}</strong></div>)}</section>
     <section className="delivery-card" aria-labelledby="delivery-heading"><div className="question-kicker">FINAL DOCUMENTATION</div><h3 id="delivery-heading">Send or retain this record</h3><p>Enter your email to prepare a message containing the checklist, its rationale, sources, and intake answers.</p><div className="email-request"><label htmlFor="checklist-email">Email address</label><div><input id="checklist-email" type="email" value={email} onChange={(event) => { setEmail(event.target.value); setEmailNotice('') }} placeholder="you@company.com" autoComplete="email" /><button className="button primary" onClick={requestEmail}>Prepare email</button></div>{emailNotice && <p className="email-notice" role="status">{emailNotice}</p>}</div><small>This version opens a pre-filled email draft. Automatic delivery requires an approved secure email service.</small></section>
     <div className="result-actions"><button className="button secondary" onClick={onEdit}>Edit answers</button><button className="button secondary" onClick={onRestart}>Start new intake</button><button className="button secondary" onClick={() => window.print()}>Print record</button><button className="button primary" onClick={copy}>Copy record</button></div>
   </section>
