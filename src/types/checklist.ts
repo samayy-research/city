@@ -11,12 +11,17 @@ export interface ChecklistItem {
   source: string
   sourceLocation?: string
 }
+export interface CityContact {
+  id: string
+  department: string
+  purpose: string
+  email: string
+  phone?: string
+}
 export interface CoordinationRoute {
   projectType: string
   label: string
   team: string
-  meetingContact: string
-  meetingLocation: string
   description: string
 }
 export interface RuleOption { label: string; value: string; nextQuestion?: string; addItems?: string[]; notes?: string[] }

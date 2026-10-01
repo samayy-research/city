@@ -31,14 +31,12 @@ export const checklistItems: Record<string, ChecklistItem> = {
   civilAcceptance: item('civilAcceptance', 'Review the separate civil-plan / acceptance and approval checklist', 'Specialized review', 'specialized', 'Civil acceptance or approval work was identified.', 'DSD-AAC Acceptance-or-Approval Checklist Form')
 }
 
-// Replace these placeholders with City-approved staff contacts and locations
-// before publishing the tool for public use.
 export const coordinationRoutes: Record<string, CoordinationRoute> = {
-  new: { projectType: 'new', label: 'New construction', team: 'New Construction Review Team', meetingContact: 'xyz@email.com', meetingLocation: 'New-construction coordination location to be confirmed', description: 'Arrange early coordination for site, utilities, access, and building-review sequencing.' },
-  addition: { projectType: 'addition', label: 'Addition or expansion', team: 'Building & Site Coordination Team', meetingContact: 'xyz@email.com', meetingLocation: 'Building and site coordination location to be confirmed', description: 'Review the connection between the existing building, the addition, and any site impacts.' },
-  renovation: { projectType: 'renovation', label: 'Renovation or tenant build-out', team: 'Existing Building / Tenant Improvement Team', meetingContact: 'xyz@email.com', meetingLocation: 'Existing-building coordination location to be confirmed', description: 'Discuss the existing conditions, intended use, life safety, and trade-permit scope.' },
-  changeUse: { projectType: 'changeUse', label: 'Change of use or occupancy', team: 'Zoning & Building Use Coordination Team', meetingContact: 'xyz@email.com', meetingLocation: 'Zoning and building-use coordination location to be confirmed', description: 'Confirm the proposed use, occupancy, Certificate of Use, and any required building review.' },
-  siteOnly: { projectType: 'siteOnly', label: 'Site improvement only', team: 'Site Development & Right-of-Way Team', meetingContact: 'xyz@email.com', meetingLocation: 'Site-development coordination location to be confirmed', description: 'Discuss civil review, access, drainage, utilities, landscaping, and right-of-way needs.' }
+  new: { projectType: 'new', label: 'New construction', team: 'Building Inspection Division and Development Services', description: 'Start with the relevant City teams below to coordinate building review, site work, utilities, access, and sequencing.' },
+  addition: { projectType: 'addition', label: 'Addition or expansion', team: 'Building Inspection Division and Development Services', description: 'Start with the relevant City teams below to coordinate the existing building, addition, and any site impacts.' },
+  renovation: { projectType: 'renovation', label: 'Renovation or tenant build-out', team: 'Building Inspection Division', description: 'Start with the relevant City teams below to discuss existing conditions, intended use, life safety, and trade-permit scope.' },
+  changeUse: { projectType: 'changeUse', label: 'Change of use or occupancy', team: 'Zoning and Building Inspection Division', description: 'Start with the relevant City teams below to confirm the proposed use, occupancy, Certificate of Use, and required building review.' },
+  siteOnly: { projectType: 'siteOnly', label: 'Site improvement only', team: 'Development Services Division', description: 'Start with the relevant City teams below to discuss civil review, access, drainage, utilities, landscaping, and right-of-way needs.' }
 }
 
 const yesNo = (yesItems: string[], nextQuestion?: string): Question['options'] => [{ label: 'Yes', value: 'yes', addItems: yesItems, nextQuestion }, { label: 'No', value: 'no', nextQuestion }, { label: 'Unsure', value: 'unsure', addItems: ['coordinatorValidation'], nextQuestion }]

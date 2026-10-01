@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import type { AnswerMap, ChecklistItem, Outcome } from '../types/checklist'
+import type { AnswerMap, ChecklistItem, CityContact, Outcome } from '../types/checklist'
 import { ChecklistSection } from './ChecklistSection'
 import { coordinationRoutes } from '../data/checklistRules'
 
@@ -13,6 +13,25 @@ const outcomeCopy: Record<Outcome, { title: string; description: string }> = {
   specialized: { title: 'Separate specialized workflow', description: 'These are not general construction requirements. Use the named checklist only for this specific use case.' }
 }
 const outcomeOrder: Outcome[] = ['preliminary-route', 'review-flag', 'preparation', 'specialized']
+const emailIsValid = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+const contacts: Record<string, CityContact> = {
+  building: { id: 'building', department: 'Building Inspection Division', purpose: 'Commercial building, electrical, mechanical, and plumbing permits or inspections', email: 'BIDDocuments@coj.net', phone: '(904) 255-8500' },
+  zoning: { id: 'zoning', department: 'Development Services — Zoning', purpose: 'Zoning, Certificate of Use, setbacks, and land-use questions', email: 'Zoning@coj.net', phone: '(904) 255-8300' },
+  development: { id: 'development', department: 'Development Services — Review Group', purpose: 'Site development, driveway, right-of-way, drainage, and civil-plan review', email: 'ReviewGrp@coj.net', phone: '(904) 255-8310' },
+  fire: { id: 'fire', department: 'Jacksonville Fire & Rescue — Plan Review', purpose: 'Fire permits, commercial cooking, life safety, and fire-protection plan review', email: 'HPadgett@coj.net', phone: '(904) 255-8562' },
+  environmental: { id: 'environmental', department: 'Environmental Quality Division', purpose: 'Construction-site erosion and sediment-control questions', email: 'ESC@coj.net' }
+}
+
+function relevantContacts(answers: AnswerMap, items: ChecklistItem[]): CityContact[] {
+  const ids = new Set(items.map((item) => item.id))
+  const needed = new Set<string>()
+  if (answers.projectType !== 'siteOnly') needed.add('building')
+  if (ids.has('cou') || ids.has('convertingUse') || ids.has('occupancyReview') || ids.has('zoningReview') || ids.has('riskCoordination')) needed.add('zoning')
+  if (ids.has('sitePermit') || ids.has('rowPermit') || answers.projectType === 'new' || answers.projectType === 'siteOnly') needed.add('development')
+  if (ids.has('fireReview') || ids.has('occupancyReview') || ids.has('cou')) needed.add('fire')
+  if (ids.has('sitePermit') && answers.knownIssues === 'yes') needed.add('environmental')
+  return [...needed].map((id) => contacts[id])
+}
 
 declare global {
   interface Window {
@@ -31,6 +50,7 @@ export function ChecklistResults({ items, notes, answers, projectName, projectLo
   const turnstileTarget = useRef<HTMLDivElement>(null)
   const byOutcome = useMemo(() => items.reduce<Record<Outcome, ChecklistItem[]>>((result, item) => { result[item.outcome].push(item); return result }, { 'preliminary-route': [], 'review-flag': [], preparation: [], specialized: [] }), [items])
   const coordinationRoute = coordinationRoutes[answers.projectType]
+  const cityContacts = useMemo(() => relevantContacts(answers, items), [answers, items])
   const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined
   useEffect(() => {
     if (!requestOpen || !turnstileSiteKey || !turnstileTarget.current) return
@@ -43,12 +63,13 @@ export function ChecklistResults({ items, notes, answers, projectName, projectLo
     return () => script.removeEventListener('load', renderWidget)
   }, [requestOpen, turnstileSiteKey])
   const toggle = (id: string) => setCompleted((previous) => { const next = new Set(previous); next.has(id) ? next.delete(id) : next.add(id); return next })
-  const coordinationText = `PROJECT DETAILS\nName: ${projectName}\nProject address or location: ${projectLocation}\n\n${coordinationRoute ? `CITY COORDINATION\nProject route: ${coordinationRoute.label}\nRecommended group: ${coordinationRoute.team}\nContact for more information: ${coordinationRoute.meetingContact}\nMeeting location: ${coordinationRoute.meetingLocation}\n` : ''}`
+  const coordinationText = `PROJECT DETAILS\nName: ${projectName}\nProject address or location: ${projectLocation}\n\n${coordinationRoute ? `CITY COORDINATION\nProject route: ${coordinationRoute.label}\nRecommended group: ${coordinationRoute.team}\n${cityContacts.map((contact) => `${contact.department}: ${contact.email}${contact.phone ? ` (${contact.phone})` : ''}`).join('\n')}\n` : ''}`
   const text = `PRELIMINARY COJ-INFORMED PERMIT AND DOCUMENT CHECKLIST\nGenerated ${new Date().toLocaleDateString()}\n\n${coordinationText}${outcomeOrder.filter((outcome) => byOutcome[outcome].length).map((outcome) => `${outcomeCopy[outcome].title.toUpperCase()}\n${byOutcome[outcome].map((entry) => `${completed.has(entry.id) ? '[x]' : '[ ]'} ${entry.label}\n    Why: ${entry.reason}\n    Source: ${entry.source}${entry.sourceLocation ? ` — ${entry.sourceLocation}` : ''}`).join('\n')}`).join('\n\n')}\n\nINTAKE ANSWERS\n${Object.entries(answers).map(([key, value]) => `${labels[key]}: ${pretty(value)}`).join('\n')}`
   const copy = async () => { await navigator.clipboard.writeText(text); window.alert('Checklist copied to clipboard.') }
   const requestEmail = () => {
-    if (!email || !email.includes('@')) { setEmailNotice('Enter a valid email address to prepare your request.'); return }
-    window.location.href = `mailto:?subject=${encodeURIComponent('Preliminary COJ-Informed Checklist')}&body=${encodeURIComponent(`Please send this checklist to ${email}.\n\n${text}`)}`
+    const recipient = email.trim()
+    if (!emailIsValid(recipient)) { setEmailNotice('Enter a valid email address to prepare your request.'); return }
+    window.location.href = `mailto:${encodeURIComponent(recipient)}?subject=${encodeURIComponent('Preliminary COJ-Informed Checklist')}&body=${encodeURIComponent(text)}`
     setEmailNotice('Your email app has opened with the checklist in the message body. Send it to deliver your copy.')
   }
   const submitCoordinationRequest = async (event: FormEvent<HTMLFormElement>) => {
@@ -71,14 +92,16 @@ export function ChecklistResults({ items, notes, answers, projectName, projectLo
     <aside className="disclaimer"><strong>Not a City determination.</strong> This preliminary matrix identifies documented routing outcomes and review flags from the available source material. Final permit requirements are determined with the COJ Permit Coordinator and relevant City staff.</aside>
     {coordinationRoute && <section className="coordination-card" aria-labelledby="coordination-heading">
       <div className="question-kicker">CITY COORDINATION</div>
-      <h3 id="coordination-heading">Your next conversation</h3>
+      <h3 id="coordination-heading">Your next City conversations</h3>
       <p>{coordinationRoute.description}</p>
       <div className="coordination-details">
         <div><span>Recommended group</span><strong>{coordinationRoute.team}</strong></div>
-        <div><span>Contact for more information</span><a href={`mailto:${coordinationRoute.meetingContact}`}>{coordinationRoute.meetingContact}</a></div>
-        <div><span>Meeting location</span><strong>{coordinationRoute.meetingLocation}</strong></div>
       </div>
-      <small>Project route: {coordinationRoute.label}. City staff should confirm the final team, attendee, and meeting location.</small>
+      <div className="city-contact-list">{cityContacts.map((contact) => <section className="city-contact" key={contact.id}>
+        <h4>{contact.department}</h4><p>{contact.purpose}</p>
+        <a href={`mailto:${contact.email}`}>{contact.email}</a>{contact.phone && <span>{contact.phone}</span>}
+      </section>)}</div>
+      <small>Project route: {coordinationRoute.label}. Contact only the teams shown for the work identified in this intake; City staff confirm final routing.</small>
       <button className="button primary coordination-button" onClick={() => { setRequestOpen(true); setRequestNotice('') }}>Request City coordination</button>
     </section>}
     {requestOpen && coordinationRoute && <section className="request-card" aria-labelledby="request-heading">
